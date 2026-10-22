@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cashflow · Demo</title>
+  <style>
+    :root {
+      --bg: #eef4f1;
+      --card: #ffffff;
+      --ink: #17332c;
+      --muted: #71827d;
+      --line: #e3ebe7;
+      --green: #1f8f5f;
+      --green-2: #b8dfad;
+      --blue: #2fafd0;
+      --orange: #f0a26b;
+      --red: #d86e73;
+      --shadow: 0 16px 40px rgba(24, 65, 52, .08);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; }
+    .shell { max-width: 1440px; margin: 0 auto; padding: 28px 34px 44px; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 32px; }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .mark { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: white; font-weight: 900; background: linear-gradient(135deg, #1e6b50, #49a968); box-shadow: 0 8px 18px rgba(31,143,95,.23); }
+    .eyebrow { text-transform: uppercase; letter-spacing: .16em; font-size: 10px; color: var(--muted); font-weight: 800; }
+    h1 { margin: 3px 0 0; font-size: clamp(25px, 3vw, 38px); letter-spacing: -.04em; }
+    .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .tabs { display: flex; gap: 8px; margin: 0 0 20px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+    .tab { background: transparent; color: var(--muted); border: 0; border-radius: 9px; padding: 10px 15px; }
+    .tab.active { background: var(--ink); color: white; }
+    .page[hidden] { display: none; }
+    .auth-modal { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(11, 35, 27, .48); backdrop-filter: blur(4px); }
+    .auth-modal[hidden] { display: none; }
+    .auth-card { width: min(390px, calc(100vw - 32px)); padding: 28px; border-radius: 20px; background: white; box-shadow: 0 25px 70px rgba(0,0,0,.22); }
+    .auth-card h3 { margin: 0 0 8px; font-size: 21px; }
+    .auth-card p { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 0 0 18px; }
+    .auth-card input { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 12px; font: inherit; margin-bottom: 10px; }
+    .auth-card input:focus { outline: 2px solid #9bd1ad; border-color: var(--green); }
+    .auth-error { color: var(--red); font-size: 12px; min-height: 18px; margin: 8px 0 2px; font-weight: 700; }
+    select, button { border: 1px solid var(--line); background: white; border-radius: 10px; padding: 10px 13px; color: var(--ink); font: inherit; }
+    button { cursor: pointer; background: var(--ink); color: white; border-color: var(--ink); font-weight: 700; }
+    button.secondary { background: #f4f8f5; color: var(--ink); border-color: var(--line); }
+    .hero { display: grid; grid-template-columns: 1.45fr .75fr; gap: 18px; margin-bottom: 18px; }
+    .hero-card { padding: 28px; border-radius: 22px; background: linear-gradient(135deg, #163c31, #235e48); color: white; box-shadow: var(--shadow); overflow: hidden; position: relative; }
+    .hero-card:after { content: ''; position: absolute; width: 330px; height: 330px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; right: -120px; top: -140px; box-shadow: 0 0 0 24px rgba(255,255,255,.035), 0 0 0 48px rgba(255,255,255,.025); }
+    .hero-card h2 { max-width: 610px; margin: 7px 0 13px; font-size: clamp(27px, 3.3vw, 46px); line-height: 1.02; letter-spacing: -.055em; }
+    .hero-card p { color: rgba(255,255,255,.72); margin: 0; max-width: 560px; }
+    .hero-number { margin-top: 30px; font-size: 32px; font-weight: 800; letter-spacing: -.04em; }
+    .hero-number small { display: block; margin-top: 4px; color: rgba(255,255,255,.62); font-size: 12px; font-weight: 600; letter-spacing: 0; }
+    .insight { padding: 25px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: space-between; }
+    .insight strong { display: block; font-size: 20px; margin-top: 8px; }
+    .insight p { color: var(--muted); line-height: 1.5; font-size: 13px; margin: 10px 0 0; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; background: #eaf6ea; color: #317a43; border-radius: 99px; padding: 7px 10px; font-size: 12px; font-weight: 800; width: fit-content; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 18px; }
+    .card { background: var(--card); border: 1px solid rgba(223,234,229,.8); box-shadow: var(--shadow); border-radius: 18px; padding: 19px 20px; }
+    .card-label { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .card-value { font-size: 26px; font-weight: 850; letter-spacing: -.045em; margin-top: 9px; }
+    .card-foot { font-size: 11px; margin-top: 8px; color: var(--muted); }
+    .positive { color: var(--green); } .negative { color: var(--red); }
+    .grid { display: grid; grid-template-columns: 1.3fr .7fr; gap: 18px; }
+    .panel { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 23px; min-width: 0; }
+    .panel-head { display: flex; justify-content: space-between; gap: 15px; align-items: flex-start; margin-bottom: 18px; }
+    .panel h3 { margin: 0; font-size: 17px; letter-spacing: -.02em; }
+    .panel-sub { color: var(--muted); font-size: 12px; margin-top: 5px; }
+    .legend { display: flex; gap: 13px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .chart-wrap { width: 100%; overflow: hidden; }
+    svg { width: 100%; height: auto; display: block; }
+    .axis { fill: #94a39e; font-size: 10px; }
+    .table-panel { margin-top: 18px; }
+    .cash-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .cash-table th { text-align: left; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; padding: 0 10px 11px; border-bottom: 1px solid var(--line); }
+    .cash-table th:not(:first-child), .cash-table td:not(:first-child) { text-align: right; }
+    .cash-table td { padding: 12px 10px; border-bottom: 1px solid #edf2ef; }
+    .cash-table tr:last-child td { border-bottom: 0; font-weight: 800; }
+    .bar-cell { min-width: 135px; }
+    .edit-input { width: 112px; max-width: 100%; border: 1px solid #cfe1d8; border-radius: 7px; padding: 7px 8px; color: var(--ink); background: #fbfefc; font: inherit; text-align: right; }
+    .edit-input:focus { outline: 2px solid #9bd1ad; border-color: var(--green); }
+    .edit-note { color: var(--muted); font-size: 12px; margin: -7px 0 14px; }
+    .input-sheet { overflow: hidden; }
+    .input-table { min-width: 1260px; width: 100%; border-collapse: collapse; font-size: 11px; }
+    .input-table th { position: sticky; top: 0; z-index: 1; background: #f2f7f4; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-size: 10px; padding: 10px 7px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .input-table th:first-child, .input-table td:first-child { position: sticky; left: 0; z-index: 2; background: white; text-align: left; min-width: 235px; }
+    .input-table th:first-child { background: #f2f7f4; z-index: 3; }
+    .input-table td { padding: 5px 6px; border-bottom: 1px solid #edf2ef; text-align: right; }
+    .input-table .sheet-input { width: 88px; border: 1px solid #d6e6dd; border-radius: 6px; padding: 7px 6px; text-align: right; font: inherit; color: var(--ink); background: #fbfefc; }
+    .input-table .sheet-input:focus { outline: 2px solid #9bd1ad; border-color: var(--green); }
+    .input-table .date-month { width: 92px; border: 1px solid #b8d8c2; border-radius: 6px; padding: 7px 4px; text-align: center; font: inherit; font-weight: 800; color: var(--ink); background: #ffffff; }
+    .input-table .date-year { width: 58px; border: 1px solid #b8d8c2; border-radius: 6px; padding: 7px 4px; text-align: center; font: inherit; font-weight: 800; color: var(--ink); background: #ffffff; margin-left: 3px; }
+    .input-table .date-month:focus, .input-table .date-year:focus { outline: 2px solid #9bd1ad; border-color: var(--green); }
+    .input-table .group-row td { background: #cfe8c7 !important; color: #275c36; font-weight: 900; text-align: left; letter-spacing: .05em; padding: 9px 8px; }
+    .input-table .total-row td { font-weight: 900; background: #fff0e6; }
+    .input-table .cash-row td { font-weight: 900; background: #d9f0d0; }
+    .input-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .saved-message { color: var(--green); font-size: 12px; font-weight: 800; opacity: 0; transition: opacity .2s; }
+    .saved-message.show { opacity: 1; }
+    .mobile-input-list { display: none; }
+    .mobile-month-card { background: #f8fcf9; border: 1px solid var(--line); border-radius: 15px; padding: 14px; }
+    .mobile-month-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 900; }
+    .mobile-date-controls { display: flex; gap: 4px; }
+    .mobile-entry-row { display: grid; grid-template-columns: minmax(0, 1fr) 112px; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #e8f0eb; font-size: 12px; }
+    .mobile-entry-row:last-child { border-bottom: 0; }
+    .mobile-section { color: #317a43; font-size: 10px; font-weight: 900; letter-spacing: .1em; margin: 13px 0 3px; }
+    .mobile-total { display: flex; justify-content: space-between; padding-top: 12px; margin-top: 8px; border-top: 2px solid #d3e7d7; font-weight: 900; }
+    .bar-track { height: 7px; border-radius: 9px; background: #edf4ef; overflow: hidden; margin-top: 5px; }
+    .bar-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--green-2), var(--green)); }
+    .category { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .category:last-child { border-bottom: 0; }
+    .cat-name { font-weight: 700; font-size: 13px; }
+    .cat-note { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .cat-value { font-weight: 800; font-size: 13px; }
+    footer { color: var(--muted); text-align: center; font-size: 11px; padding-top: 24px; }
+    @media (max-width: 950px) { .hero, .grid { grid-template-columns: 1fr; } .cards { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 800px) { .input-sheet .table-scroll { display: none; } .mobile-input-list { display: grid; gap: 12px; } .input-actions { justify-content: flex-start; } .mobile-month-card .sheet-input { width: 100%; } .mobile-month-card .date-month { width: 78px; } .mobile-month-card .date-year { width: 58px; } }
+    @media (max-width: 620px) { .shell { padding: 20px 14px 32px; } header { align-items: flex-start; flex-direction: column; } .cards { grid-template-columns: 1fr 1fr; gap: 10px; } .card { padding: 15px; } .card-value { font-size: 20px; } .legend { display: none; } .cash-table { min-width: 640px; } .table-scroll { overflow-x: auto; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand">
+        <div class="mark">€</div>
+        <div><div class="eyebrow">Hermanos Moyano C.B.</div><h1>Cashflow</h1></div>
+      </div>
+      <div class="controls">
+        <select id="yearFilter"><option value="all">Todos los años</option><option value="2026">2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option></select>
+        <select id="monthFilter"><option value="all">Todos los meses</option><option value="abr">Abril</option><option value="may">Mayo</option><option value="jun">Junio</option><option value="jul">Julio</option><option value="ago">Agosto</option><option value="sep">Septiembre</option><option value="oct">Octubre</option><option value="nov">Noviembre</option><option value="dic">Diciembre</option><option value="ene">Enero</option><option value="feb">Febrero</option><option value="mar">Marzo</option></select>
+        <button id="refresh">Actualizar demo</button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Hojas del cashflow">
+      <button class="tab active" data-page="dashboardPage">Resumen</button>
+      <button class="tab" data-page="inputPage">Entrada completa 🔒</button>
+    </nav>
+
+    <div id="authModal" class="auth-modal" hidden>
+      <div class="auth-card">
+        <h3>Acceso interno</h3>
+        <p>Introduce la contraseña para abrir la hoja Entrada completa.</p>
+        <input id="accessPassword" type="password" autocomplete="off" placeholder="Contraseña">
+        <button id="unlockButton">Entrar</button>
+        <div id="authError" class="auth-error"></div>
+      </div>
+    </div>
+
+    <div id="dashboardPage" class="page">
+    <section class="hero">
+      <div class="hero-card">
+        <div class="eyebrow" style="color:#acd5be">Proyección de tesorería</div>
+        <h2>Ver el dinero que entra, sale y queda disponible.</h2>
+        <p>Una vista rápida del cashflow mensual para tomar decisiones antes de que llegue el cierre.</p>
+        <div class="hero-number" id="heroBalance">180.658,30 €<small>Saldo estimado al final del periodo</small></div>
+      </div>
+      <div class="insight"><div><span class="pill"><span class="dot"></span> Demo activa</span><strong id="insightTitle">Cierre ligeramente negativo</strong><p id="insightText">Los gastos superan a los ingresos en el conjunto del periodo. La caja se mantiene positiva.</p></div><div class="card-foot">Datos de ejemplo basados en la imagen adjunta</div></div>
+    </section>
+
+    <section class="cards">
+      <div class="card"><div class="card-label">Saldo inicial bancos</div><div class="card-value" id="initial">200.000,00 €</div><div class="card-foot">Inicio del periodo</div></div>
+      <div class="card"><div class="card-label">Ingresos previstos</div><div class="card-value positive" id="income">725.356,59 €</div><div class="card-foot">Cobros y subvenciones</div></div>
+      <div class="card"><div class="card-label">Gastos previstos</div><div class="card-value negative" id="expenses">744.698,29 €</div><div class="card-foot">Operación y financiación</div></div>
+      <div class="card"><div class="card-label">Variación neta</div><div class="card-value negative" id="net">-19.341,70 €</div><div class="card-foot">Ingresos menos gastos</div></div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <div class="panel-head"><div><h3>Evolución del saldo</h3><div class="panel-sub">Saldo final estimado por mes</div></div><div class="legend"><span><i style="background:var(--green)"></i>Saldo</span><span><i style="background:var(--blue)"></i>Ingresos</span><span><i style="background:var(--orange)"></i>Gastos</span></div></div>
+        <div class="chart-wrap"><svg id="chart" viewBox="0 0 900 310" role="img" aria-label="Gráfico de cashflow"></svg></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>Reparto del gasto</h3><div class="panel-sub">Principales bloques del periodo</div></div></div>
+        <div id="categories"></div>
+      </div>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="panel-head"><div><h3>Detalle mensual editable</h3><div class="panel-sub">Introduce ingresos y gastos; el saldo se recalcula automáticamente</div></div><div class="controls"><span class="pill" id="monthCount">12 meses</span><button class="secondary" id="resetData">Restaurar ejemplo</button><button id="saveData">Guardar cambios</button></div></div>
+      <div class="edit-note">Los cambios se guardan en este navegador. El saldo inicial del primer mes también se puede modificar.</div>
+      <div class="table-scroll"><table class="cash-table"><thead><tr><th>Mes</th><th>Saldo inicial</th><th>Ingresos editables</th><th>Gastos editables</th><th>Variación</th><th>Saldo final</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+    </div>
+
+    <div id="inputPage" class="page" hidden>
+      <section class="panel input-sheet">
+        <div class="panel-head"><div><h3>Entrada completa del cashflow</h3><div class="panel-sub">Rellena conceptos, importes y fechas. Los totales se calculan automáticamente.</div></div><div class="input-actions"><span class="saved-message" id="savedMessage">Cambios guardados</span><button class="secondary" id="clearInput">Vaciar hoja</button><button class="secondary" id="lockInput">Bloquear</button><button id="saveInput">Guardar hoja</button></div></div>
+        <div class="edit-note">Las fechas de los encabezados también son editables. Usa el selector de mes y pulsa <strong>Guardar hoja</strong>.</div>
+        <div class="table-scroll"><table class="input-table"><thead id="inputHead"></thead><tbody id="inputRows"></tbody><tfoot id="inputFoot"></tfoot></table></div>
+        <div id="mobileInputRows" class="mobile-input-list"></div>
+      </section>
+    </div>
+    <footer>Prototipo visual · Los datos reales se pueden conectar después al Excel, Power BI o una base de datos.</footer>
+  </main>
+  <script>
+    const seedData = [
+      ['abr-26', 200000, 36131.21, 54593.07, 181538.14], ['may-26', 181538.14, 46272.57, 113684.38, 114126.33],
+      ['jun-26', 114126.33, 31042.89, 59085.89, 86083.33], ['jul-26', 86083.33, 99504.32, 60799.93, 124787.72],
+      ['ago-26', 124787.72, 32142.89, 45877.84, 111052.77], ['sep-26', 111052.77, 64115.70, 63672.94, 111495.53],
+      ['oct-26', 111495.53, 132786.12, 62291.33, 181990.32], ['nov-26', 181990.32, 126272.57, 65974.63, 242288.26],
+      ['dic-26', 242288.26, 24000, 77374.82, 188913.44], ['ene-27', 188913.44, 65088.32, 48021.03, 205980.73],
+      ['feb-27', 205980.73, 30000, 45416.61, 190564.12], ['mar-27', 190564.12, 38000, 47905.83, 180658.30]
+    ];
+    let allData = JSON.parse(localStorage.getItem('cashflowDemoData') || 'null') || seedData.map(r => [...r]);
+    let manualOpenings = localStorage.getItem('cashflowManualOpenings') === 'true';
+    const monthCodes = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    function isoFromLabel(label) { const parts = String(label).toLowerCase().split('-'); const month = monthCodes.indexOf(parts[0]) + 1; return month > 0 ? `20${parts[1]}-${String(month).padStart(2, '0')}` : ''; }
+    function labelFromIso(iso) { const parts = String(iso || '').split('-'); const month = Number(parts[1]); return parts.length === 2 && month >= 1 && month <= 12 ? `${monthCodes[month - 1]}-${parts[0].slice(-2)}` : ''; }
+    let periodDates = JSON.parse(localStorage.getItem('cashflowPeriodDates') || 'null') || allData.map(r => isoFromLabel(r[0]));
+    const emptyMonths = () => Array(allData.length).fill(0);
+    const detailSeed = [
+      ['INGRESOS', 'COSECHAS OLIVAR', 'income'], ['INGRESOS', 'INGRESO DE OTRAS COSECHAS', 'income'], ['INGRESOS', 'SUBVENCIONES', 'income'], ['INGRESOS', 'OTROS INGRESOS', 'income'],
+      ['GASTOS', 'EMPLEADOS - JORNALES', 'expense'], ['GASTOS', 'OTRAS NÓMINAS', 'expense'], ['GASTOS', 'GASTOS SEGURIDAD SOCIAL', 'expense'], ['GASTOS', 'PROVEEDORES', 'expense'], ['GASTOS', 'TRABAJOS REALIZADOS POR OTRAS EMPRESAS', 'expense'], ['GASTOS', 'REPARACIÓN Y CONSERVACIÓN', 'expense'], ['GASTOS', 'RIEGO Y GASTOS DE RIEGO', 'expense'], ['GASTOS', 'PTMO CIUDAD REGANTES NTRA SRA DE GRACIA', 'expense'], ['GASTOS', 'SERVICIOS PROFESIONALES', 'expense'], ['GASTOS', 'PRIMAS DE SEGUROS', 'expense'], ['GASTOS', 'OTROS SERVICIOS', 'expense'], ['GASTOS', 'TRIBUTOS', 'expense'], ['GASTOS', 'INVERSIONES', 'expense'], ['GASTOS', 'PRÉSTAMOS', 'expense'], ['GASTOS', 'PROVISIÓN REPARTO COMUNEROS', 'expense']
+    ];
+    let detailRows = JSON.parse(localStorage.getItem('cashflowDetailRows') || 'null') || detailSeed.map(r => ({ group: r[0], name: r[1], kind: r[2], values: emptyMonths() }));
+    let openingBalances = JSON.parse(localStorage.getItem('cashflowOpeningBalances') || 'null') || allData.map(r => r[1]);
+    const categories = [['Personal y nóminas', 182435], ['Proveedores', 92589], ['Riego y conservación', 150000], ['Inversiones', 126000], ['Préstamos', 81402], ['Otros gastos', 62272]];
+    const euro = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
+    const compact = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 });
+    const fmt = n => euro.format(n);
+    const INTERNAL_PASSWORD = 'Moyano2026';
+    let internalUnlocked = false;
+    try { internalUnlocked = sessionStorage.getItem('cashflowInternalUnlocked') === 'true'; } catch (e) { internalUnlocked = false; }
+    let current = allData;
+    function recalculateData() {
+      let balance = Number(allData[0][1]) || 0;
+      allData.forEach((r, i) => {
+        if (i > 0 && !manualOpenings) r[1] = balance;
+        r[2] = Number(r[2]) || 0;
+        r[3] = Number(r[3]) || 0;
+        r[4] = r[1] + r[2] - r[3];
+        balance = r[4];
+      });
+    }
+    function render() {
+      recalculateData();
+      const selectedYear = document.getElementById('yearFilter').value;
+      const selectedMonth = document.getElementById('monthFilter').value;
+      current = allData.filter(r => {
+        const parts = r[0].split('-');
+        const month = parts[0], year = `20${parts[1]}`;
+        return (selectedYear === 'all' || selectedYear === year) && (selectedMonth === 'all' || selectedMonth === month);
+      });
+      const initial = current.length ? current[0][1] : 0, income = current.reduce((a, r) => a + r[2], 0), expenses = current.reduce((a, r) => a + r[3], 0), final = current.length ? current[current.length - 1][4] : 0;
+      document.getElementById('monthCount').textContent = `${current.length} ${current.length === 1 ? 'mes' : 'meses'}`;
+      document.getElementById('initial').textContent = fmt(initial); document.getElementById('income').textContent = fmt(income); document.getElementById('expenses').textContent = fmt(expenses); document.getElementById('net').textContent = fmt(income - expenses); document.getElementById('heroBalance').innerHTML = fmt(final) + '<small>Saldo estimado al final del periodo</small>';
+      document.getElementById('insightTitle').textContent = income - expenses < 0 ? 'Cierre ligeramente negativo' : 'Cierre positivo';
+      document.getElementById('insightText').textContent = income - expenses < 0 ? 'Los gastos superan a los ingresos en el conjunto del periodo. La caja se mantiene positiva.' : 'Los ingresos previstos superan a los gastos en el conjunto del periodo.';
+      renderChart(); renderRows(); renderCategories();
+    }
+    function renderChart() {
+      const svg = document.getElementById('chart'), W = 900, H = 310, p = {l: 46, r: 18, t: 18, b: 38};
+      if (!current.length) { svg.innerHTML = '<text class="axis" x="330" y="155">No hay datos para esta combinación</text>'; return; }
+      const max = Math.max(...current.flatMap(r => [r[2], r[3], r[4]])) * 1.12, min = 0, x = i => p.l + i * ((W-p.l-p.r)/(Math.max(1,current.length-1))), y = v => H-p.b-(v-min)/(max-min)*(H-p.t-p.b);
+      let out = ''; [0,.25,.5,.75,1].forEach(t => { const yy = y(max*t); out += `<line x1="${p.l}" x2="${W-p.r}" y1="${yy}" y2="${yy}" stroke="#e8efeb"/><text class="axis" x="4" y="${yy+4}">${compact.format(max*t/1000)}k</text>`; });
+      const poly = key => current.map((r,i) => `${x(i)},${y(r[key])}`).join(' ');
+      current.forEach((r,i) => { const bw = Math.min(26, (W-p.l-p.r)/current.length*.34); out += `<rect x="${x(i)-bw-2}" y="${y(r[2])}" width="${bw}" height="${H-p.b-y(r[2])}" rx="4" fill="#7bc7dc" opacity=".68"/><rect x="${x(i)+2}" y="${y(r[3])}" width="${bw}" height="${H-p.b-y(r[3])}" rx="4" fill="#f2b186" opacity=".78"/><text class="axis" text-anchor="middle" x="${x(i)}" y="${H-12}">${r[0]}</text>`; });
+      out += `<polyline points="${poly(4)}" fill="none" stroke="#1f8f5f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+      current.forEach((r,i) => { out += `<circle cx="${x(i)}" cy="${y(r[4])}" r="5" fill="white" stroke="#1f8f5f" stroke-width="3"/>`; });
+      svg.innerHTML = out;
+    }
+    function renderRows() {
+      const max = Math.max(...current.map(r => r[4]), 1);
+      document.getElementById('rows').innerHTML = current.map(r => {
+        const index = allData.indexOf(r);
+        const opening = index === 0 ? `<input class="edit-input" data-row="${index}" data-field="opening" type="number" step="0.01" value="${r[1].toFixed(2)}">` : fmt(r[1]);
+        return `<tr><td><strong>${r[0]}</strong></td><td>${opening}</td><td class="positive"><input class="edit-input" data-row="${index}" data-field="income" type="number" step="0.01" value="${r[2].toFixed(2)}"></td><td class="negative"><input class="edit-input" data-row="${index}" data-field="expense" type="number" step="0.01" value="${r[3].toFixed(2)}"></td><td>${fmt(r[2]-r[3])}</td><td class="bar-cell"><strong>${fmt(r[4])}</strong><div class="bar-track"><div class="bar-fill" style="width:${Math.max(0,r[4])/max*100}%"></div></div></td></tr>`;
+      }).join('');
+    }
+    function renderCategories() { const total = categories.reduce((a,c) => a+c[1], 0); document.getElementById('categories').innerHTML = categories.map(c => `<div class="category"><div><div class="cat-name">${c[0]}</div><div class="cat-note">${(c[1]/total*100).toFixed(1).replace('.',',')} % del gasto</div></div><div class="cat-value">${fmt(c[1])}</div></div>`).join(''); }
+    function detailTotals() {
+      const income = Array(allData.length).fill(0), expense = Array(allData.length).fill(0);
+      detailRows.forEach(row => row.values.forEach((value, i) => row.kind === 'income' ? income[i] += Number(value) || 0 : expense[i] += Number(value) || 0));
+      return { income, expense };
+    }
+    function renderInputSheet() {
+      document.getElementById('inputHead').innerHTML = `<tr><th>Concepto</th>${allData.map(r => `<th>${String(r[0]).toUpperCase()}</th>`).join('')}<th>Total</th></tr>`;
+      let html = `<tr class="cash-row"><td>Fecha editable</td>${allData.map((r, i) => { const parts = String(periodDates[i] || '').split('-'); const year = parts[0] || ''; const month = Number(parts[1] || 1); const options = monthCodes.map((code, n) => `<option value="${n + 1}" ${n + 1 === month ? 'selected' : ''}>${code.toUpperCase()}</option>`).join(''); return `<td><select class="date-month" data-date-index="${i}" title="Editar mes">${options}</select><input class="date-year" data-date-index="${i}" type="number" min="2020" max="2100" value="${year}" title="Editar año"></td>`; }).join('')}<td>—</td></tr><tr class="cash-row"><td>Saldo inicial bancos</td>${allData.map((r, i) => `<td><input class="sheet-input opening-input" data-opening="${i}" type="number" step="0.01" value="${Number(openingBalances[i] || 0).toFixed(2)}"></td>`).join('')}<td>—</td></tr>`;
+      let previousGroup = '';
+      detailRows.forEach((row, rowIndex) => {
+        if (row.group !== previousGroup) { html += `<tr class="group-row"><td colspan="${allData.length + 2}">${row.group}</td></tr>`; previousGroup = row.group; }
+        const total = row.values.reduce((a, v) => a + (Number(v) || 0), 0);
+        html += `<tr><td>${row.name}</td>${row.values.map((value, monthIndex) => `<td><input class="sheet-input detail-input" data-row="${rowIndex}" data-month="${monthIndex}" type="number" step="0.01" value="${Number(value || 0).toFixed(2)}"></td>`).join('')}<td>${fmt(total)}</td></tr>`;
+      });
+      document.getElementById('inputRows').innerHTML = html;
+      const totals = detailTotals();
+      const incomeTotal = totals.income.reduce((a, v) => a + v, 0), expenseTotal = totals.expense.reduce((a, v) => a + v, 0);
+      const closingBalances = totals.income.map((v, i) => Number(openingBalances[i] || 0) + v - totals.expense[i]);
+      document.getElementById('inputFoot').innerHTML = `<tr class="total-row"><td>TOTAL INGRESOS</td>${totals.income.map(v => `<td>${fmt(v)}</td>`).join('')}<td>${fmt(incomeTotal)}</td></tr><tr class="total-row"><td>TOTAL GASTOS</td>${totals.expense.map(v => `<td>${fmt(v)}</td>`).join('')}<td>${fmt(expenseTotal)}</td></tr><tr class="cash-row"><td>TOTAL CASHFLOW</td>${closingBalances.map(v => `<td>${fmt(v)}</td>`).join('')}<td>${fmt(closingBalances[closingBalances.length - 1] || 0)}</td></tr>`;
+      const mobile = allData.map((r, monthIndex) => {
+        const parts = String(periodDates[monthIndex] || '').split('-'), year = parts[0] || '', month = Number(parts[1] || 1);
+        const options = monthCodes.map((code, n) => `<option value="${n + 1}" ${n + 1 === month ? 'selected' : ''}>${code.toUpperCase()}</option>`).join('');
+        let card = `<article class="mobile-month-card"><div class="mobile-month-title"><span>${String(r[0]).toUpperCase()}</span><span class="mobile-date-controls"><select class="date-month" data-date-index="${monthIndex}">${options}</select><input class="date-year" data-date-index="${monthIndex}" type="number" min="2020" max="2100" value="${year}"></span></div><div class="mobile-entry-row"><strong>Saldo inicial bancos</strong><input class="sheet-input opening-input" data-opening="${monthIndex}" type="number" step="0.01" value="${Number(openingBalances[monthIndex] || 0).toFixed(2)}"></div>`;
+        let group = '';
+        detailRows.forEach((row, rowIndex) => { if (row.group !== group) { card += `<div class="mobile-section">${row.group}</div>`; group = row.group; } card += `<div class="mobile-entry-row"><span>${row.name}</span><input class="sheet-input detail-input" data-row="${rowIndex}" data-month="${monthIndex}" type="number" step="0.01" value="${Number(row.values[monthIndex] || 0).toFixed(2)}"></div>`; });
+        card += `<div class="mobile-total"><span>Saldo final estimado</span><span>${fmt(Number(openingBalances[monthIndex] || 0) + totals.income[monthIndex] - totals.expense[monthIndex])}</span></div></article>`;
+        return card;
+      }).join('');
+      document.getElementById('mobileInputRows').innerHTML = mobile;
+      document.querySelectorAll('.detail-input, .opening-input, .date-year').forEach(input => input.addEventListener('input', () => syncInputToSummary(false)));
+      document.querySelectorAll('.date-month').forEach(input => input.addEventListener('change', () => syncInputToSummary(false)));
+    }
+    function syncInputToSummary(persist) {
+      const inputRoot = window.innerWidth <= 800 ? '#mobileInputRows' : '#inputRows';
+      document.querySelectorAll(`${inputRoot} .date-month`).forEach(input => { const i = Number(input.dataset.dateIndex), yearInput = document.querySelector(`${inputRoot} .date-year[data-date-index="${i}"]`), year = Number(yearInput.value) || 2026, month = String(Number(input.value) || 1).padStart(2, '0'), iso = `${year}-${month}`, label = labelFromIso(iso); if (label) { periodDates[i] = iso; allData[i][0] = label; } });
+      document.querySelectorAll(`${inputRoot} .opening-input`).forEach(input => { openingBalances[Number(input.dataset.opening)] = Number(input.value) || 0; });
+      document.querySelectorAll(`${inputRoot} .detail-input`).forEach(input => { detailRows[Number(input.dataset.row)].values[Number(input.dataset.month)] = Number(input.value) || 0; });
+      const totals = detailTotals();
+      allData = allData.map((row, i) => [row[0], openingBalances[i], totals.income[i], totals.expense[i], openingBalances[i] + totals.income[i] - totals.expense[i]]);
+      manualOpenings = true;
+      if (persist) { localStorage.setItem('cashflowDetailRows', JSON.stringify(detailRows)); localStorage.setItem('cashflowOpeningBalances', JSON.stringify(openingBalances)); localStorage.setItem('cashflowPeriodDates', JSON.stringify(periodDates)); localStorage.setItem('cashflowDemoData', JSON.stringify(allData)); localStorage.setItem('cashflowManualOpenings', 'true'); }
+      render();
+    }
+    function saveInputSheet() {
+      syncInputToSummary(true);
+      renderInputSheet();
+      const message = document.getElementById('savedMessage'); message.classList.add('show'); setTimeout(() => message.classList.remove('show'), 1800);
+    }
+    function clearInputSheet() {
+      detailRows.forEach(row => row.values = emptyMonths()); openingBalances = Array(allData.length).fill(0); manualOpenings = true; renderInputSheet();
+    }
+    function showInputPage() { document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.page === 'inputPage')); document.querySelectorAll('.page').forEach(page => page.hidden = page.id !== 'inputPage'); renderInputSheet(); }
+    function showDashboardPage() { document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.page === 'dashboardPage')); document.querySelectorAll('.page').forEach(page => page.hidden = page.id !== 'dashboardPage'); }
+    function requestInternalAccess() { const modal = document.getElementById('authModal'); modal.hidden = false; document.getElementById('accessPassword').value = ''; document.getElementById('authError').textContent = ''; document.getElementById('accessPassword').focus(); }
+    function unlockInternalPage() { const input = document.getElementById('accessPassword'); if (input.value === INTERNAL_PASSWORD) { internalUnlocked = true; try { sessionStorage.setItem('cashflowInternalUnlocked', 'true'); } catch (e) {} document.getElementById('authModal').hidden = true; showInputPage(); } else { document.getElementById('authError').textContent = 'Contraseña incorrecta'; input.select(); } }
+    document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => { if (tab.dataset.page === 'inputPage' && !internalUnlocked) { requestInternalAccess(); return; } if (tab.dataset.page === 'inputPage') showInputPage(); else showDashboardPage(); }));
+    document.getElementById('unlockButton').addEventListener('click', unlockInternalPage);
+    document.getElementById('accessPassword').addEventListener('keydown', event => { if (event.key === 'Enter') unlockInternalPage(); });
+    document.getElementById('saveInput').addEventListener('click', saveInputSheet);
+    document.getElementById('clearInput').addEventListener('click', clearInputSheet);
+    document.getElementById('lockInput').addEventListener('click', () => { internalUnlocked = false; try { sessionStorage.removeItem('cashflowInternalUnlocked'); } catch (e) {} showDashboardPage(); });
+    document.getElementById('yearFilter').addEventListener('change', render);
+    document.getElementById('monthFilter').addEventListener('change', render);
+    document.getElementById('refresh').addEventListener('click', render);
+    document.getElementById('saveData').addEventListener('click', () => {
+      document.querySelectorAll('.edit-input').forEach(input => {
+        const i = Number(input.dataset.row), value = Number(input.value) || 0;
+        if (input.dataset.field === 'opening' && i === 0) allData[0][1] = value;
+        if (input.dataset.field === 'income') allData[i][2] = value;
+        if (input.dataset.field === 'expense') allData[i][3] = value;
+      });
+      manualOpenings = false;
+      recalculateData();
+      localStorage.setItem('cashflowManualOpenings', 'false');
+      localStorage.setItem('cashflowDemoData', JSON.stringify(allData));
+      render();
+    });
+    document.getElementById('resetData').addEventListener('click', () => {
+      allData = seedData.map(r => [...r]);
+      localStorage.removeItem('cashflowDemoData');
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>
