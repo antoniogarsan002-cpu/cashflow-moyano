@@ -245,7 +245,14 @@
       setSyncStatus('Guardando…', 'saving');
       sharedSyncTimer = setTimeout(async () => {
         try {
-          await setDoc(sharedCashflowRef, { allData, detailRows, openingBalances, periodDates, manualOpenings, updatedAt: Date.now() });
+          await setDoc(sharedCashflowRef, {
+            allDataJson: JSON.stringify(allData),
+            detailRowsJson: JSON.stringify(detailRows),
+            openingBalancesJson: JSON.stringify(openingBalances),
+            periodDatesJson: JSON.stringify(periodDates),
+            manualOpenings,
+            updatedAt: Date.now()
+          });
           setSyncStatus('Sincronizado', 'ok');
         } catch (error) {
           console.error('No se pudo guardar en Firebase', error);
@@ -255,12 +262,25 @@
     }
 
     function applySharedState(data) {
-      if (!Array.isArray(data.allData) || !Array.isArray(data.detailRows)) return;
+      let sharedAllData = data.allData;
+      let sharedDetailRows = data.detailRows;
+      let sharedOpeningBalances = data.openingBalances;
+      let sharedPeriodDates = data.periodDates;
+      try {
+        if (data.allDataJson) sharedAllData = JSON.parse(data.allDataJson);
+        if (data.detailRowsJson) sharedDetailRows = JSON.parse(data.detailRowsJson);
+        if (data.openingBalancesJson) sharedOpeningBalances = JSON.parse(data.openingBalancesJson);
+        if (data.periodDatesJson) sharedPeriodDates = JSON.parse(data.periodDatesJson);
+      } catch (error) {
+        console.error('Datos compartidos no válidos', error);
+        return;
+      }
+      if (!Array.isArray(sharedAllData) || !Array.isArray(sharedDetailRows)) return;
       applyingSharedState = true;
-      allData = data.allData.map(row => [...row]);
-      detailRows = data.detailRows.map(row => ({ ...row, values: Array.isArray(row.values) ? [...row.values] : emptyMonths() }));
-      openingBalances = Array.isArray(data.openingBalances) ? [...data.openingBalances] : allData.map(row => row[1]);
-      periodDates = Array.isArray(data.periodDates) ? [...data.periodDates] : allData.map(row => isoFromLabel(row[0]));
+      allData = sharedAllData.map(row => [...row]);
+      detailRows = sharedDetailRows.map(row => ({ ...row, values: Array.isArray(row.values) ? [...row.values] : emptyMonths() }));
+      openingBalances = Array.isArray(sharedOpeningBalances) ? [...sharedOpeningBalances] : allData.map(row => row[1]);
+      periodDates = Array.isArray(sharedPeriodDates) ? [...sharedPeriodDates] : allData.map(row => isoFromLabel(row[0]));
       manualOpenings = Boolean(data.manualOpenings);
       saveLocalState();
       render();
