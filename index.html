@@ -81,7 +81,13 @@
     .edit-input { width: 112px; max-width: 100%; border: 1px solid #cfe1d8; border-radius: 7px; padding: 7px 8px; color: var(--ink); background: #fbfefc; font: inherit; text-align: right; }
     .edit-input:focus { outline: 2px solid #9bd1ad; border-color: var(--green); }
     .edit-note { color: var(--muted); font-size: 12px; margin: -7px 0 14px; }
-    .input-sheet { overflow: hidden; }
+    .input-sheet { overflow: visible; }
+    .input-sheet .table-scroll { max-height: min(72vh, 760px); overflow: auto; border: 1px solid var(--line); border-radius: 12px; scrollbar-color: #5a8c6f #e6f0e9; scrollbar-width: auto; }
+    .input-sheet .table-scroll::-webkit-scrollbar { width: 14px; height: 14px; }
+    .input-sheet .table-scroll::-webkit-scrollbar-track { background: #e6f0e9; border-radius: 10px; }
+    .input-sheet .table-scroll::-webkit-scrollbar-thumb { background: #5a8c6f; border: 3px solid #e6f0e9; border-radius: 10px; }
+    .input-sheet .table-scroll::-webkit-scrollbar-thumb:hover { background: #2f6d4e; }
+    .scroll-hint { display: flex; justify-content: space-between; gap: 12px; padding: 8px 2px 0; color: var(--muted); font-size: 11px; }
     .input-table { min-width: 1260px; width: 100%; border-collapse: collapse; font-size: 11px; }
     .input-table th { position: sticky; top: 0; z-index: 1; background: #f2f7f4; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-size: 10px; padding: 10px 7px; border-bottom: 1px solid var(--line); white-space: nowrap; }
     .input-table th:first-child, .input-table td:first-child { position: sticky; left: 0; z-index: 2; background: white; text-align: left; min-width: 235px; }
@@ -115,7 +121,7 @@
     .cat-value { font-weight: 800; font-size: 13px; }
     footer { color: var(--muted); text-align: center; font-size: 11px; padding-top: 24px; }
     @media (max-width: 950px) { .hero, .grid { grid-template-columns: 1fr; } .cards { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 800px) { .input-sheet .table-scroll { display: none; } .mobile-input-list { display: grid; gap: 12px; } .input-actions { justify-content: flex-start; } .mobile-month-card .sheet-input { width: 100%; } .mobile-month-card .date-month { width: 78px; } .mobile-month-card .date-year { width: 58px; } }
+    @media (max-width: 800px) { .input-sheet .table-scroll { display: block; max-height: calc(100vh - 230px); } .mobile-input-list { display: none; } .input-actions { justify-content: flex-start; } }
     @media (max-width: 620px) { .shell { padding: 20px 14px 32px; } header { align-items: flex-start; flex-direction: column; } .cards { grid-template-columns: 1fr 1fr; gap: 10px; } .card { padding: 15px; } .card-value { font-size: 20px; } .legend { display: none; } .cash-table { min-width: 640px; } .table-scroll { overflow-x: auto; } }
   </style>
 </head>
@@ -189,6 +195,7 @@
         <div class="panel-head"><div><h3>Entrada completa del cashflow</h3><div class="panel-sub">Rellena conceptos, importes y fechas. Los totales se calculan automáticamente.</div></div><div class="input-actions"><span class="saved-message" id="savedMessage">Cambios guardados</span><button class="secondary" id="clearInput">Vaciar hoja</button><button class="secondary" id="lockInput">Bloquear</button><button id="saveInput">Guardar hoja</button></div></div>
         <div class="edit-note">Las fechas de los encabezados también son editables. Usa el selector de mes y pulsa <strong>Guardar hoja</strong>.</div>
         <div class="table-scroll"><table class="input-table"><thead id="inputHead"></thead><tbody id="inputRows"></tbody><tfoot id="inputFoot"></tfoot></table></div>
+        <div class="scroll-hint"><span>↔ Mueve la barra inferior para ver todos los meses</span><span>↕ Desplázate para ver todos los conceptos</span></div>
         <div id="mobileInputRows" class="mobile-input-list"></div>
       </section>
     </div>
