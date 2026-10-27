@@ -27,6 +27,10 @@
     .eyebrow { text-transform: uppercase; letter-spacing: .16em; font-size: 10px; color: var(--muted); font-weight: 800; }
     h1 { margin: 3px 0 0; font-size: clamp(25px, 3vw, 38px); letter-spacing: -.04em; }
     .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .sync-status { color: var(--muted); font-size: 11px; font-weight: 800; white-space: nowrap; }
+    .sync-status[data-state="ok"] { color: var(--green); }
+    .sync-status[data-state="saving"] { color: #a86b2e; }
+    .sync-status[data-state="error"] { color: #b64e4e; }
     .tabs { display: flex; gap: 8px; margin: 0 0 20px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
     .tab { background: transparent; color: var(--muted); border: 0; border-radius: 9px; padding: 10px 15px; }
     .tab.active { background: var(--ink); color: white; }
@@ -135,7 +139,7 @@
       <div class="controls">
         <select id="yearFilter"><option value="all">Todos los años</option><option value="2026">2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option></select>
         <select id="monthFilter"><option value="all">Todos los meses</option><option value="abr">Abril</option><option value="may">Mayo</option><option value="jun">Junio</option><option value="jul">Julio</option><option value="ago">Agosto</option><option value="sep">Septiembre</option><option value="oct">Octubre</option><option value="nov">Noviembre</option><option value="dic">Diciembre</option><option value="ene">Enero</option><option value="feb">Febrero</option><option value="mar">Marzo</option></select>
-        <button id="refresh">Actualizar demo</button>
+        <span class="sync-status" id="syncStatus">Conectando…</span><button id="refresh">Actualizar demo</button>
       </div>
     </header>
 
@@ -185,7 +189,7 @@
 
     <section class="panel table-panel">
       <div class="panel-head"><div><h3>Detalle mensual editable</h3><div class="panel-sub">Introduce ingresos y gastos; el saldo se recalcula automáticamente</div></div><div class="controls"><span class="pill" id="monthCount">12 meses</span><button class="secondary" id="resetData">Restaurar ejemplo</button><button id="saveData">Guardar cambios</button></div></div>
-      <div class="edit-note">Los cambios se guardan en este navegador. El saldo inicial del primer mes también se puede modificar.</div>
+      <div class="edit-note">Los cambios se guardan en Firebase y se ven en los demás ordenadores. El saldo inicial del primer mes también se puede modificar.</div>
       <div class="table-scroll"><table class="cash-table"><thead><tr><th>Mes</th><th>Saldo inicial</th><th>Ingresos editables</th><th>Gastos editables</th><th>Variación</th><th>Saldo final</th></tr></thead><tbody id="rows"></tbody></table></div>
     </section>
     </div>
@@ -201,7 +205,92 @@
     </div>
     <footer>Prototipo visual · Los datos reales se pueden conectar después al Excel, Power BI o una base de datos.</footer>
   </main>
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAOa0O3VbDWzIf9bC3N8eWA--CHZzYQc4A",
+      authDomain: "cashflow-moyano.firebaseapp.com",
+      projectId: "cashflow-moyano",
+      storageBucket: "cashflow-moyano.firebasestorage.app",
+      messagingSenderId: "930408627286",
+      appId: "1:930408627286:web:d72837b195b2afcfe60ff7"
+    };
+    const firebaseApp = initializeApp(firebaseConfig);
+    const firebaseAuth = getAuth(firebaseApp);
+    const firebaseDb = getFirestore(firebaseApp);
+    const sharedCashflowRef = doc(firebaseDb, 'cashflows', 'moyano');
+    let sharedSyncReady = false;
+    let sharedSyncTimer = null;
+    let applyingSharedState = false;
+
+    function setSyncStatus(text, state = '') {
+      const status = document.getElementById('syncStatus');
+      if (status) { status.textContent = text; status.dataset.state = state; }
+    }
+
+    function saveLocalState() {
+      localStorage.setItem('cashflowDetailRows', JSON.stringify(detailRows));
+      localStorage.setItem('cashflowOpeningBalances', JSON.stringify(openingBalances));
+      localStorage.setItem('cashflowPeriodDates', JSON.stringify(periodDates));
+      localStorage.setItem('cashflowDemoData', JSON.stringify(allData));
+      localStorage.setItem('cashflowManualOpenings', String(manualOpenings));
+    }
+
+    function queueSharedSave() {
+      if (!sharedSyncReady || applyingSharedState) return;
+      clearTimeout(sharedSyncTimer);
+      setSyncStatus('Guardando…', 'saving');
+      sharedSyncTimer = setTimeout(async () => {
+        try {
+          await setDoc(sharedCashflowRef, { allData, detailRows, openingBalances, periodDates, manualOpenings, updatedAt: Date.now() });
+          setSyncStatus('Sincronizado', 'ok');
+        } catch (error) {
+          console.error('No se pudo guardar en Firebase', error);
+          setSyncStatus('Error de sincronización', 'error');
+        }
+      }, 700);
+    }
+
+    function applySharedState(data) {
+      if (!Array.isArray(data.allData) || !Array.isArray(data.detailRows)) return;
+      applyingSharedState = true;
+      allData = data.allData.map(row => [...row]);
+      detailRows = data.detailRows.map(row => ({ ...row, values: Array.isArray(row.values) ? [...row.values] : emptyMonths() }));
+      openingBalances = Array.isArray(data.openingBalances) ? [...data.openingBalances] : allData.map(row => row[1]);
+      periodDates = Array.isArray(data.periodDates) ? [...data.periodDates] : allData.map(row => isoFromLabel(row[0]));
+      manualOpenings = Boolean(data.manualOpenings);
+      saveLocalState();
+      render();
+      if (!document.getElementById('inputPage').hidden) renderInputSheet();
+      applyingSharedState = false;
+    }
+
+    async function initializeSharedSync() {
+      setSyncStatus('Conectando…');
+      try {
+        await signInAnonymously(firebaseAuth);
+        onSnapshot(sharedCashflowRef, snapshot => {
+          sharedSyncReady = true;
+          if (snapshot.exists()) {
+            applySharedState(snapshot.data());
+            setSyncStatus('Sincronizado', 'ok');
+          } else {
+            setSyncStatus('Preparando datos…', 'saving');
+            queueSharedSave();
+          }
+        }, error => {
+          console.error('No se pudo leer Firebase', error);
+          setSyncStatus('Error de sincronización', 'error');
+        });
+      } catch (error) {
+        console.error('No se pudo iniciar la sincronización', error);
+        setSyncStatus('Solo local', 'error');
+      }
+    }
+
     const seedData = [
       ['abr-26', 200000, 36131.21, 54593.07, 181538.14], ['may-26', 181538.14, 46272.57, 113684.38, 114126.33],
       ['jun-26', 114126.33, 31042.89, 59085.89, 86083.33], ['jul-26', 86083.33, 99504.32, 60799.93, 124787.72],
@@ -317,7 +406,7 @@
       const totals = detailTotals();
       allData = allData.map((row, i) => [row[0], openingBalances[i], totals.income[i], totals.expense[i], openingBalances[i] + totals.income[i] - totals.expense[i]]);
       manualOpenings = true;
-      if (persist) { localStorage.setItem('cashflowDetailRows', JSON.stringify(detailRows)); localStorage.setItem('cashflowOpeningBalances', JSON.stringify(openingBalances)); localStorage.setItem('cashflowPeriodDates', JSON.stringify(periodDates)); localStorage.setItem('cashflowDemoData', JSON.stringify(allData)); localStorage.setItem('cashflowManualOpenings', 'true'); }
+      if (persist) { saveLocalState(); queueSharedSave(); }
       render();
     }
     function saveInputSheet() {
@@ -326,7 +415,7 @@
       const message = document.getElementById('savedMessage'); message.classList.add('show'); setTimeout(() => message.classList.remove('show'), 1800);
     }
     function clearInputSheet() {
-      detailRows.forEach(row => row.values = emptyMonths()); openingBalances = Array(allData.length).fill(0); manualOpenings = true; renderInputSheet();
+      detailRows.forEach(row => row.values = emptyMonths()); openingBalances = Array(allData.length).fill(0); manualOpenings = true; saveLocalState(); queueSharedSave(); renderInputSheet();
     }
     function showInputPage() { document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.page === 'inputPage')); document.querySelectorAll('.page').forEach(page => page.hidden = page.id !== 'inputPage'); renderInputSheet(); }
     function showDashboardPage() { document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.page === 'dashboardPage')); document.querySelectorAll('.page').forEach(page => page.hidden = page.id !== 'dashboardPage'); }
@@ -350,16 +439,22 @@
       });
       manualOpenings = false;
       recalculateData();
-      localStorage.setItem('cashflowManualOpenings', 'false');
-      localStorage.setItem('cashflowDemoData', JSON.stringify(allData));
+      saveLocalState();
+      queueSharedSave();
       render();
     });
     document.getElementById('resetData').addEventListener('click', () => {
       allData = seedData.map(r => [...r]);
-      localStorage.removeItem('cashflowDemoData');
+      detailRows = detailSeed.map(r => ({ group: r[0], name: r[1], kind: r[2], values: emptyMonths() }));
+      openingBalances = allData.map(r => r[1]);
+      periodDates = allData.map(r => isoFromLabel(r[0]));
+      manualOpenings = false;
+      saveLocalState();
+      queueSharedSave();
       render();
     });
     render();
+    initializeSharedSync();
   </script>
 </body>
 </html>
